@@ -13,11 +13,11 @@ if bashio::config.has_value 'data_plane_key'; then
     cat <<EOF > /etc/nginx-agent/nginx-agent.conf
 server:
   host: "agent.connect.nginx.com"
-  grpcPort: 443
+  port: 443
   token: "${TOKEN}"
-tls:
-  enable: true
-  skip_verify: false
+  tls:
+    skip_verify: false
+
 features:
   - metrics
   - configuration
