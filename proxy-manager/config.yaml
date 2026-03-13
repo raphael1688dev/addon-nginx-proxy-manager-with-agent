@@ -19,5 +19,11 @@ ports:
   443/tcp: 443
 map:
   - addon_config:rw
+options:
+  # NGINX Agent
+  data_plane_key: ""
+schema:
+  # NGINX Agent
+  data_plane_key: "str?"
 backup_exclude:
   - "*/logs"
