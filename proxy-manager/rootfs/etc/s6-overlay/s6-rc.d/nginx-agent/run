@@ -26,6 +26,20 @@ allowed_directories:
   - "/config"
   - "/ssl"
   - "/proc"
+  - "/etc/nginx-agent"
+  - "/etc/nginx"
+  - "/data/nginx"
+  - "/etc/letsencrypt"
+  - "/data/custom_ssl"
+  - "/config/nginx"
+  - "/config/nginx/proxy_host"
+  - "/config/nginx/custom"
+  - "/config/nginx/redirection_host"
+  - "/config/nginx/dead_host"
+  - "/config/nginx/stream"
+  - "/config/nginx/default_host"
+  - "/config/nginx/temp"
+  - "/proc/1/fd"
 EOF
     fi
 
