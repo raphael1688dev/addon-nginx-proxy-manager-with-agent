@@ -18,13 +18,11 @@ if bashio::config.has_value 'data_plane_key'; then
         sed -i "s/dummy_key_for_build/${TOKEN}/g" /var/lib/nginx-agent/agent-dynamic.conf
         bashio::log.info "NGINX Agent token injected into dynamic configuration."
     fi
-    
-    # Ultimate fallback: Use officially supported environment variables to override the config.
-    export NGINX_AGENT_SERVER_TOKEN="${TOKEN}"
 
-    # Expand the Agent's trusted directories to include HA/NPM's dynamic configuration and SSL folders
-    export NGINX_AGENT_CONFIG_DIRS="/etc/nginx:/data/nginx:/etc/letsencrypt:/data/custom_ssl:/config/nginx:/ssl"
-    bashio::log.info "NGINX Agent trusted directories expanded for HA and NPM compatibility."
+    #
+    # NGINX Agent 3.x uses NGINX_AGENT_ALLOWED_DIRECTORIES with a comma-separated list
+    export NGINX_AGENT_ALLOWED_DIRECTORIES="/etc/nginx-agent,/etc/nginx,/etc/app_protect,/usr/local/etc/nginx,/usr/share/nginx/modules,/var/run/nginx,/var/log/nginx,/data/nginx,/etc/letsencrypt,/data/custom_ssl,/config/nginx,/ssl"
+    bashio::log.info "NGINX Agent trusted directories expanded for HA and NPM compatibility (v3.x format)."
 
     bashio::log.info "Starting NGINX Agent process..."
     
