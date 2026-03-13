@@ -1,5 +1,5 @@
 ---
-name: Nginx Proxy Manager
+name: Nginx Proxy Manager with Agent
 version: dev
 slug: nginxproxymanager
 description: Manage Nginx proxy hosts with a simple, powerful interface
