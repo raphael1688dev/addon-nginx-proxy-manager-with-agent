@@ -9,30 +9,19 @@ if bashio::config.has_value 'data_plane_key'; then
     # Create the directory for the Agent configuration file
     mkdir -p /etc/nginx-agent
     
-    # Dynamically generate the NGINX Agent configuration file (including log path override)
+    # Dynamically generate the NGINX Agent 3.x configuration file
     cat <<EOF > /etc/nginx-agent/nginx-agent.conf
 server:
   host: "agent.connect.nginx.com"
-  port: 443
-auth:
+  grpcPort: 443
   token: "${TOKEN}"
 tls:
+  enable: true
   skip_verify: false
-
-# Enable metrics sender feature
 features:
-  - metrics-sender
-
-metrics:
-  bulk_size: 20
-  report_interval: 1m
-  collection_interval: 15s
-  metrics_poll_interval: 1000ms
-
-# Force the Agent to read the physical Access Log we created (bypassing NPM's redirection of logs to stdout)
-nginx:
-  access_logs:
-    - "/tmp/nginx-agent-access.log"
+  - metrics
+  - configuration
+  - file-watcher
 EOF
 
     bashio::log.info "NGINX Agent configuration generated successfully."
