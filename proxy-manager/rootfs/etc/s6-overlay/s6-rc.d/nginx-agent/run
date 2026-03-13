@@ -1,30 +1,22 @@
 #!/command/with-contenv bashio
 # shellcheck shell=bash
 
-# Check if the user has provided the Token in the HA UI
 if bashio::config.has_value 'data_plane_key'; then
     TOKEN=$(bashio::config 'data_plane_key')
-    bashio::log.info "Found data_plane_key, reconstructing NGINX Agent configuration..."
+    bashio::log.info "Found data_plane_key, applying safe configuration updates..."
     
-    # Create the directory if it doesn't exist
-    mkdir -p /etc/nginx-agent
+    # 1. 
+    # 
+    if grep -q "dummy_key_for_build" /etc/nginx-agent/nginx-agent.conf; then
+        sed -i "s#dummy_key_for_build#${TOKEN}#g" /etc/nginx-agent/nginx-agent.conf
+        bashio::log.info "Token successfully injected into original config."
+    fi
 
-    # GENERATE COMPLETE CONFIGURATION (Bypasses all sed and indentation issues)
-    # This ensures both the connection (server) and the security (allowed_directories) are perfect.
-    cat <<EOF > /etc/nginx-agent/nginx-agent.conf
-server:
-  host: "agent.connect.nginx.com"
-  port: 443
-  token: "${TOKEN}"
-  tls:
-    enable: true
-    skip_verify: true
-
-features:
-  - configuration
-  - metrics
-  - file-watcher
-  - certificates
+    # 2. 
+    # 
+    if ! grep -q "allowed_directories:" /etc/nginx-agent/nginx-agent.conf; then
+        bashio::log.info "Appending exhaustive directory whitelist..."
+        cat <<EOF >> /etc/nginx-agent/nginx-agent.conf
 
 allowed_directories:
   - "/etc"
@@ -35,88 +27,12 @@ allowed_directories:
   - "/ssl"
   - "/proc"
 EOF
-
-    bashio::log.info "NGINX Agent configuration reconstructed successfully."
-    bashio::log.info "Starting NGINX Agent process..."
-    
-    # Use exec to start the main process so s6-overlay can properly manage the PID
-    exec /usr/bin/nginx-agent
-else
-    bashio::log.warning "No data_plane_key provided in the add-on configuration."
-    bashio::log.warning "NGINX Agent will enter sleep mode and will not affect NGINX Proxy Manager operations."
-    
-    exec sleep infinity
-fi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#!/command/with-contenv bashio
-# shellcheck shell=bash
-
-# Check if the user has provided the Token in the HA UI
-if bashio::config.has_value 'data_plane_key'; then
-    TOKEN=$(bashio::config 'data_plane_key')
-    bashio::log.info "Found data_plane_key, preparing F5 NGINX One Console connection..."
-    
-    # 1. Inject the Token into the official config
-    # Use '#' as sed delimiter instead of '/' to handle slashes in the Token
-    if grep -q "dummy_key_for_build" /etc/nginx-agent/nginx-agent.conf 2>/dev/null; then
-        sed -i "s#dummy_key_for_build#${TOKEN}#g" /etc/nginx-agent/nginx-agent.conf
-        bashio::log.info "NGINX Agent token injected into static configuration."
-    fi
-    
-    # Check dynamic config as well
-    if [ -f /var/lib/nginx-agent/agent-dynamic.conf ] && grep -q "dummy_key_for_build" /var/lib/nginx-agent/agent-dynamic.conf 2>/dev/null; then
-        sed -i "s#dummy_key_for_build#${TOKEN}#g" /var/lib/nginx-agent/agent-dynamic.conf
-        bashio::log.info "NGINX Agent token injected into dynamic configuration."
     fi
 
-    # 2. Cleanup previous attempts (in case of a simple restart without rebuild)
-    # Using '#' here as well for consistency
-    sed -i '\#nginx:#,$d' /etc/nginx-agent/nginx-agent.conf
-    sed -i '\#allowed_directories:#,$d' /etc/nginx-agent/nginx-agent.conf
-
-    # 3. The Ultimate Fix: Exhaustive exact-match directories!
-    cat <<EOF >> /etc/nginx-agent/nginx-agent.conf
-
-allowed_directories:
-  - "/tmp"
-  - "/config"
-  - "/etc"
-  - "/var"
-  - "/data"
-  - "/ssl"
-  - "/proc"
-EOF
-    bashio::log.info "NGINX Agent exhaustive trusted directories appended to YAML."
-
     bashio::log.info "Starting NGINX Agent process..."
-    
-    # Use exec to start the main process so s6-overlay can properly manage the PID
+    # 
     exec /usr/bin/nginx-agent
 else
-    bashio::log.warning "No data_plane_key provided in the add-on configuration."
-    bashio::log.warning "NGINX Agent will enter sleep mode and will not affect NGINX Proxy Manager operations."
-    
-    # Sleep infinitely to keep the s6-overlay service alive without consuming resources
+    bashio::log.warning "No data_plane_key provided."
     exec sleep infinity
 fi
