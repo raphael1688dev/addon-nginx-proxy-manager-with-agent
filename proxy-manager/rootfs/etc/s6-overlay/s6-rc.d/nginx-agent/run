@@ -3,50 +3,63 @@
 
 if bashio::config.has_value 'data_plane_key'; then
     TOKEN=$(bashio::config 'data_plane_key')
-    bashio::log.info "Found data_plane_key, applying safe configuration updates..."
+    bashio::log.info "Reconstructing NGINX Agent configuration from scratch..."
     
-    # 1. 
     # 
-    if grep -q "dummy_key_for_build" /etc/nginx-agent/nginx-agent.conf; then
-        sed -i "s#dummy_key_for_build#${TOKEN}#g" /etc/nginx-agent/nginx-agent.conf
-        bashio::log.info "Token successfully injected into original config."
-    fi
+    mkdir -p /etc/nginx-agent
 
-    # 2. 
-    # 
-    if ! grep -q "allowed_directories:" /etc/nginx-agent/nginx-agent.conf; then
-        bashio::log.info "Appending exhaustive directory whitelist..."
-        cat <<EOF >> /etc/nginx-agent/nginx-agent.conf
+    #
+    cat <<EOF > /etc/nginx-agent/nginx-agent.conf
+# Fixed Configuration for NGINX Agent in Home Assistant
+log:
+  level: info
+  path: /var/log/nginx-agent/
 
 allowed_directories:
   - "/etc"
-  - "/usr"
-  - "/var"
-  - "/data"
-  - "/config"
-  - "/ssl"
-  - "/proc"
-  - "/etc/nginx-agent"
   - "/etc/nginx"
+  - "/etc/nginx-agent"
+  - "/var/run/nginx"
+  - "/var/log/nginx"
+  - "/data"
   - "/data/nginx"
-  - "/etc/letsencrypt"
-  - "/data/custom_ssl"
+  - "/config"
   - "/config/nginx"
   - "/config/nginx/proxy_host"
   - "/config/nginx/custom"
-  - "/config/nginx/redirection_host"
-  - "/config/nginx/dead_host"
-  - "/config/nginx/stream"
   - "/config/nginx/default_host"
+  - "/config/nginx/dead_host"
+  - "/config/nginx/redirection_host"
   - "/config/nginx/temp"
+  - "/config/nginx/stream"
+  - "/ssl"
   - "/proc/1/fd"
-EOF
-    fi
 
-    bashio::log.info "Starting NGINX Agent process..."
+command:
+  server:
+    host: agent.connect.nginx.com
+    port: 443
+  auth:
+    token: "${TOKEN}"
+  tls:
+    enable: true
+    skip_verify: false
+
+features:
+  - configuration
+  - metrics
+  - file-watcher
+  - certificates
+EOF
+
     # 
+    chmod 644 /etc/nginx-agent/nginx-agent.conf
+    
+    bashio::log.info "NGINX Agent configuration is now perfectly aligned."
+    bashio::log.info "Starting NGINX Agent process..."
+    
     exec /usr/bin/nginx-agent
 else
-    bashio::log.warning "No data_plane_key provided."
+    bashio::log.error "No data_plane_key provided!"
     exec sleep infinity
 fi
