@@ -1,0 +1,28 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+
+# 
+if bashio::config.has_value 'data_plane_key'; then
+    TOKEN=$(bashio::config 'data_plane_key')
+    bashio::log.info "Generating NGINX Agent configuration..."
+    
+    #
+    mkdir -p /etc/nginx-agent
+    cat <<EOF > /etc/nginx-agent/nginx-agent.conf
+server:
+  host: "agent.connect.nginx.com"
+  port: 443
+auth:
+  token: "${TOKEN}"
+tls:
+  skip_verify: false
+EOF
+
+    bashio::log.info "Starting NGINX Agent..."
+    #
+    exec /usr/bin/nginx-agent
+else
+    bashio::log.warning "No NGINX One data_plane_key provided. NGINX Agent disabled."
+    #
+    exec sleep infinity
+fi
