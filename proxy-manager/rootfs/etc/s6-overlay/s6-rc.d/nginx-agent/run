@@ -18,32 +18,38 @@ if bashio::config.has_value 'data_plane_key'; then
         bashio::log.info "NGINX Agent token injected into dynamic configuration."
     fi
 
-    # 2. The Ultimate Fix: Correctly nested YAML configuration
-    # NGINX Agent 3.x requires allowed_directories to be strictly under the "nginx:" block!
-    if ! grep -q "allowed_directories:" /etc/nginx-agent/nginx-agent.conf 2>/dev/null; then
-        cat <<EOF >> /etc/nginx-agent/nginx-agent.conf
+    # 2. Cleanup previous attempts (in case of a simple restart without rebuild)
+    sed -i '/nginx:/,$d' /etc/nginx-agent/nginx-agent.conf
+    sed -i '/allowed_directories:/,$d' /etc/nginx-agent/nginx-agent.conf
 
-nginx:
-  allowed_directories:
-    - "/etc/nginx-agent"
-    - "/etc/nginx"
-    - "/etc/app_protect"
-    - "/usr/local/etc/nginx"
-    - "/usr/share/nginx/modules"
-    - "/var/run/nginx"
-    - "/var/log/nginx"
-    - "/data/nginx"
-    - "/etc/letsencrypt"
-    - "/data/custom_ssl"
-    - "/config/nginx"
-    - "/ssl"
+    # 3. The Ultimate Fix: Exhaustive exact-match directories!
+    # NGINX Agent requires exact paths for security. We must explicitly list every NPM subdirectory,
+    # as well as the Docker /proc/1/fd path so the Agent can read the metrics logs!
+    cat <<EOF >> /etc/nginx-agent/nginx-agent.conf
+
+allowed_directories:
+  - "/etc/nginx-agent"
+  - "/etc/nginx"
+  - "/etc/app_protect"
+  - "/usr/local/etc/nginx"
+  - "/usr/share/nginx/modules"
+  - "/var/run/nginx"
+  - "/var/log/nginx"
+  - "/data/nginx"
+  - "/data/custom_ssl"
+  - "/etc/letsencrypt"
+  - "/config/nginx"
+  - "/config/nginx/proxy_host"
+  - "/config/nginx/custom"
+  - "/config/nginx/redirection_host"
+  - "/config/nginx/dead_host"
+  - "/config/nginx/stream"
+  - "/config/nginx/default_host"
+  - "/config/nginx/temp"
+  - "/ssl"
+  - "/proc/1/fd"
 EOF
-        bashio::log.info "NGINX Agent trusted directories correctly appended under 'nginx:' block."
-    fi
-
-    # 3. Fallback env var with CORRECT 3.x naming convention 
-    # (Maps to nginx.allowed_directories)
-    export NGINX_AGENT_NGINX_ALLOWED_DIRECTORIES="/etc/nginx-agent,/etc/nginx,/etc/app_protect,/usr/local/etc/nginx,/usr/share/nginx/modules,/var/run/nginx,/var/log/nginx,/data/nginx,/etc/letsencrypt,/data/custom_ssl,/config/nginx,/ssl"
+    bashio::log.info "NGINX Agent exhaustive trusted directories appended to YAML."
 
     bashio::log.info "Starting NGINX Agent process..."
     
