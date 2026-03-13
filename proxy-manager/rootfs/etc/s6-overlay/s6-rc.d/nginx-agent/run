@@ -6,25 +6,22 @@ if bashio::config.has_value 'data_plane_key'; then
     TOKEN=$(bashio::config 'data_plane_key')
     bashio::log.info "Found data_plane_key, preparing F5 NGINX One Console connection..."
     
-    # Create the directory for the Agent configuration file
-    mkdir -p /etc/nginx-agent
+    # Strategy change: Instead of manually generating YAML, directly replace 
+    # the dummy key in the official config generated during the Docker build!
+    if grep -q "dummy_key_for_build" /etc/nginx-agent/nginx-agent.conf 2>/dev/null; then
+        sed -i "s/dummy_key_for_build/${TOKEN}/g" /etc/nginx-agent/nginx-agent.conf
+        bashio::log.info "NGINX Agent token injected into static configuration."
+    fi
     
-    # Dynamically generate the NGINX Agent 3.x configuration file
-    cat <<EOF > /etc/nginx-agent/nginx-agent.conf
-server:
-  host: "agent.connect.nginx.com"
-  port: 443
-  token: "${TOKEN}"
-  tls:
-    skip_verify: false
+    # Some Agent versions write the Token in the dynamic config, check and replace it there as well.
+    if [ -f /var/lib/nginx-agent/agent-dynamic.conf ] && grep -q "dummy_key_for_build" /var/lib/nginx-agent/agent-dynamic.conf 2>/dev/null; then
+        sed -i "s/dummy_key_for_build/${TOKEN}/g" /var/lib/nginx-agent/agent-dynamic.conf
+        bashio::log.info "NGINX Agent token injected into dynamic configuration."
+    fi
+    
+    # Ultimate fallback: Use officially supported environment variables to override the config.
+    export NGINX_AGENT_SERVER_TOKEN="${TOKEN}"
 
-features:
-  - metrics
-  - configuration
-  - file-watcher
-EOF
-
-    bashio::log.info "NGINX Agent configuration generated successfully."
     bashio::log.info "Starting NGINX Agent process..."
     
     # Use exec to start the main process so s6-overlay can properly manage the PID
