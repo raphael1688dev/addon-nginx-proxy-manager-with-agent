@@ -7,28 +7,27 @@ if bashio::config.has_value 'data_plane_key'; then
     bashio::log.info "Found data_plane_key, preparing F5 NGINX One Console connection..."
     
     # 1. Inject the Token into the official config
+    # Use '#' as sed delimiter instead of '/' to handle slashes in the Token
     if grep -q "dummy_key_for_build" /etc/nginx-agent/nginx-agent.conf 2>/dev/null; then
-        sed -i "s/dummy_key_for_build/${TOKEN}/g" /etc/nginx-agent/nginx-agent.conf
+        sed -i "s#dummy_key_for_build#${TOKEN}#g" /etc/nginx-agent/nginx-agent.conf
         bashio::log.info "NGINX Agent token injected into static configuration."
     fi
     
     # Check dynamic config as well
     if [ -f /var/lib/nginx-agent/agent-dynamic.conf ] && grep -q "dummy_key_for_build" /var/lib/nginx-agent/agent-dynamic.conf 2>/dev/null; then
-        sed -i "s/dummy_key_for_build/${TOKEN}/g" /var/lib/nginx-agent/agent-dynamic.conf
+        sed -i "s#dummy_key_for_build#${TOKEN}#g" /var/lib/nginx-agent/agent-dynamic.conf
         bashio::log.info "NGINX Agent token injected into dynamic configuration."
     fi
 
     # 2. Cleanup previous attempts (in case of a simple restart without rebuild)
-    sed -i '/nginx:/,$d' /etc/nginx-agent/nginx-agent.conf
-    sed -i '/allowed_directories:/,$d' /etc/nginx-agent/nginx-agent.conf
+    # Using '#' here as well for consistency
+    sed -i '\#nginx:#,$d' /etc/nginx-agent/nginx-agent.conf
+    sed -i '\#allowed_directories:#,$d' /etc/nginx-agent/nginx-agent.conf
 
     # 3. The Ultimate Fix: Exhaustive exact-match directories!
-    # NGINX Agent requires exact paths for security. We must explicitly list every NPM subdirectory,
-    # as well as the Docker /proc/1/fd path so the Agent can read the metrics logs!
     cat <<EOF >> /etc/nginx-agent/nginx-agent.conf
 
 allowed_directories:
-  - "/tmp"
   - "/config"
   - "/etc/nginx-agent"
   - "/etc/nginx"
