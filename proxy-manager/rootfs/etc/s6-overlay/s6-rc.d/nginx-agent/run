@@ -42,8 +42,7 @@ command:
   auth:
     token: "${TOKEN}"
   tls:
-    enable: true
-    skip_verify: false
+    skip_verify: true
 
 features:
   - configuration
