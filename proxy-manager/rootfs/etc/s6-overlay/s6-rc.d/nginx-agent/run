@@ -18,27 +18,32 @@ if bashio::config.has_value 'data_plane_key'; then
         bashio::log.info "NGINX Agent token injected into dynamic configuration."
     fi
 
-    # 2. The Ultimate Fix: Directly append allowed_directories to the YAML config!
-    # This completely bypasses the buggy environment variable parsing in Agent 3.x
+    # 2. The Ultimate Fix: Correctly nested YAML configuration
+    # NGINX Agent 3.x requires allowed_directories to be strictly under the "nginx:" block!
     if ! grep -q "allowed_directories:" /etc/nginx-agent/nginx-agent.conf 2>/dev/null; then
         cat <<EOF >> /etc/nginx-agent/nginx-agent.conf
 
-allowed_directories:
-  - "/etc/nginx-agent"
-  - "/etc/nginx"
-  - "/etc/app_protect"
-  - "/usr/local/etc/nginx"
-  - "/usr/share/nginx/modules"
-  - "/var/run/nginx"
-  - "/var/log/nginx"
-  - "/data/nginx"
-  - "/etc/letsencrypt"
-  - "/data/custom_ssl"
-  - "/config/nginx"
-  - "/ssl"
+nginx:
+  allowed_directories:
+    - "/etc/nginx-agent"
+    - "/etc/nginx"
+    - "/etc/app_protect"
+    - "/usr/local/etc/nginx"
+    - "/usr/share/nginx/modules"
+    - "/var/run/nginx"
+    - "/var/log/nginx"
+    - "/data/nginx"
+    - "/etc/letsencrypt"
+    - "/data/custom_ssl"
+    - "/config/nginx"
+    - "/ssl"
 EOF
-        bashio::log.info "NGINX Agent trusted directories appended directly to YAML configuration."
+        bashio::log.info "NGINX Agent trusted directories correctly appended under 'nginx:' block."
     fi
+
+    # 3. Fallback env var with CORRECT 3.x naming convention 
+    # (Maps to nginx.allowed_directories)
+    export NGINX_AGENT_NGINX_ALLOWED_DIRECTORIES="/etc/nginx-agent,/etc/nginx,/etc/app_protect,/usr/local/etc/nginx,/usr/share/nginx/modules,/var/run/nginx,/var/log/nginx,/data/nginx,/etc/letsencrypt,/data/custom_ssl,/config/nginx,/ssl"
 
     bashio::log.info "Starting NGINX Agent process..."
     
