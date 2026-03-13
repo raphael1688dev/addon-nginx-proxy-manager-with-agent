@@ -28,6 +28,8 @@ if bashio::config.has_value 'data_plane_key'; then
     cat <<EOF >> /etc/nginx-agent/nginx-agent.conf
 
 allowed_directories:
+  - "/tmp"
+  - "/config"
   - "/etc/nginx-agent"
   - "/etc/nginx"
   - "/etc/app_protect"
@@ -47,7 +49,7 @@ allowed_directories:
   - "/config/nginx/default_host"
   - "/config/nginx/temp"
   - "/ssl"
-  - "/proc/1/fd"
+  - "/proc"
 EOF
     bashio::log.info "NGINX Agent exhaustive trusted directories appended to YAML."
 
