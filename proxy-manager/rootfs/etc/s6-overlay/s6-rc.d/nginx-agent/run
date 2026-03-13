@@ -18,7 +18,7 @@ server:
   token: "${TOKEN}"
   tls:
     enable: true
-    skip_verify: false
+    skip_verify: true
 
 features:
   - configuration
@@ -26,15 +26,14 @@ features:
   - file-watcher
   - certificates
 
-nginx:
-  allowed_directories:
-    - "/etc"
-    - "/usr"
-    - "/var"
-    - "/data"
-    - "/config"
-    - "/ssl"
-    - "/proc"
+allowed_directories:
+  - "/etc"
+  - "/usr"
+  - "/var"
+  - "/data"
+  - "/config"
+  - "/ssl"
+  - "/proc"
 EOF
 
     bashio::log.info "NGINX Agent configuration reconstructed successfully."
