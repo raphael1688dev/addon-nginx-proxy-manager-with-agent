@@ -1,8 +1,11 @@
-# Home Assistant Community Add-on: Nginx Proxy Manager
+# Home Assistant Community Add-on: Nginx Proxy Manager with NGINX Agent
 
 This add-on enables you to easily forward incoming connections to anywhere,
 including free SSL, without having to know too much about Nginx
-or Let’s Encrypt.
+or Let’s Encrypt. 
+
+** F5 NGINX One Console Integration:**
+This custom version natively integrates the **F5 NGINX Agent**. It allows you to connect your Home Assistant Nginx Proxy Manager directly to the F5 NGINX One Console for real-time traffic monitoring, metrics collection, and centralized visibility, all without breaking the standard Home Assistant experience.
 
 Forward your domain to your Home Assistant, add-ons, or websites running
 at home or anywhere else, straight from a simple, powerful interface.
@@ -11,31 +14,39 @@ Want to protect the website with a username/password? Well, it can do that too!
 Enable authentication and create a list of usernames/password that can access
 that specific application.
 
-For the power users, you can customize the behavior of each host in the
-Nginx proxy manager by providing additional Nginx directives.
-
 ## Installation
 
 The installation of this add-on is pretty straightforward and not different in
 comparison to installing any other Home Assistant add-on.
 
-1. Click the Home Assistant My button below to open the add-on on your Home
-   Assistant instance.
-
-   [![Open this add-on in your Home Assistant instance.][addon-badge]][addon]
-
 1. Click the "Install" button to install the add-on.
-1. Start the "Nginx Proxy Manager" add-on
-1. Check the logs of the "Nginx Proxy Manager" add-on to see if everything went well.
-1. Click the "OPEN WEB UI" button and login using:
+2. Go to the "Configuration" tab and enter your F5 NGINX One `data_plane_key` (See the Configuration section below).
+3. Start the "Nginx Proxy Manager" add-on.
+4. Check the logs of the add-on to see if the NGINX Agent successfully connected to the console.
+5. Click the "OPEN WEB UI" button and login using:
    `admin@example.com` / `changeme`
-1. Forward port `443` (and optionally `80`) from your router to your
+6. Forward port `443` (and optionally `80`) from your router to your
    Home Assistant machine.
-1. Enjoy the add-on!
+7. Enjoy the add-on!
 
 ## Configuration
 
-This add-on does not provide any configuration.
+Unlike the original add-on, this custom version provides an option to enable the F5 NGINX Agent telemetry.
+
+### Option: `data_plane_key` (Optional)
+To connect this add-on to your F5 NGINX One Console, generate a Data Plane Key from your console and paste it here.
+
+* **If provided:** The internal s6-overlay service will automatically generate the `nginx-agent.conf` and start the agent in the background to monitor your proxy hosts.
+* **If left blank:** The NGINX Agent process will remain asleep. The add-on will behave exactly like the standard, unmodded Nginx Proxy Manager without consuming extra resources.
+
+## Custom Modifications (Under the Hood)
+
+To make the F5 NGINX Agent work seamlessly within the Home Assistant container environment, several core modifications were made to the original repository:
+
+* **Agent Installation:** The official NGINX Agent is fetched and installed during the Docker build process.
+* **Dual-Logging Mechanism:** The Home Assistant base image strictly redirects NGINX access logs to the standard output (`stdout`) for UI viewing via patches. To allow the Agent to calculate critical traffic metrics (like TPS, Latency, and HTTP error rates), the NPM backend templates were injected with `sed` commands to output a secondary, physical log strictly to `/tmp/nginx-agent-access.log`.
+* **Stub Status API:** A dedicated internal server block listening on `127.0.0.1:8080` was added to expose the `stub_status` API exclusively for the Agent's basic metric collection.
+* **s6-overlay Integration:** A custom startup script (`rootfs/etc/s6-overlay/s6-rc.d/nginx-agent/run`) initializes the Agent alongside the Node.js and NGINX processes, handling dynamic token injection.
 
 ## Changelog & Releases
 
