@@ -4,6 +4,78 @@
 # Check if the user has provided the Token in the HA UI
 if bashio::config.has_value 'data_plane_key'; then
     TOKEN=$(bashio::config 'data_plane_key')
+    bashio::log.info "Found data_plane_key, reconstructing NGINX Agent configuration..."
+    
+    # Create the directory if it doesn't exist
+    mkdir -p /etc/nginx-agent
+
+    # GENERATE COMPLETE CONFIGURATION (Bypasses all sed and indentation issues)
+    # This ensures both the connection (server) and the security (allowed_directories) are perfect.
+    cat <<EOF > /etc/nginx-agent/nginx-agent.conf
+server:
+  host: "agent.connect.nginx.com"
+  port: 443
+  token: "${TOKEN}"
+  tls:
+    enable: true
+    skip_verify: false
+
+features:
+  - configuration
+  - metrics
+  - file-watcher
+  - certificates
+
+nginx:
+  allowed_directories:
+    - "/etc"
+    - "/usr"
+    - "/var"
+    - "/data"
+    - "/config"
+    - "/ssl"
+    - "/proc"
+EOF
+
+    bashio::log.info "NGINX Agent configuration reconstructed successfully."
+    bashio::log.info "Starting NGINX Agent process..."
+    
+    # Use exec to start the main process so s6-overlay can properly manage the PID
+    exec /usr/bin/nginx-agent
+else
+    bashio::log.warning "No data_plane_key provided in the add-on configuration."
+    bashio::log.warning "NGINX Agent will enter sleep mode and will not affect NGINX Proxy Manager operations."
+    
+    exec sleep infinity
+fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+
+# Check if the user has provided the Token in the HA UI
+if bashio::config.has_value 'data_plane_key'; then
+    TOKEN=$(bashio::config 'data_plane_key')
     bashio::log.info "Found data_plane_key, preparing F5 NGINX One Console connection..."
     
     # 1. Inject the Token into the official config
