@@ -1,6 +1,6 @@
 ---
 name: Nginx Proxy Manager with Agent
-version: dev-20260313-020
+version: dev-20260313-021
 slug: nginxproxymanager_w_agent
 description: Manage Nginx proxy hosts with a simple, powerful interface
 url: https://github.com/raphael1688dev/addon-nginx-proxy-manager-with-agent
