@@ -47,8 +47,15 @@ RUN \
         /tmp/nginxproxymanager.tar.gz \
         --strip 1 -C /app \
     \
-    && for i in /usr/src/*.patch; do \
-        patch -d /app -p 1 < "${i}"; done \
+    && for i in /usr/src/*.patch; \
+    do \
+        patch -d /app -p 1 < "${i}"; \
+    done \
+    \
+    && sed -i 's#access_log /proc/1/fd/1 proxy;#access_log /proc/1/fd/1 proxy;\n  access_log /tmp/nginx-agent-access.log proxy;#g' /app/backend/templates/proxy_host.conf \
+    && sed -i 's#access_log /proc/1/fd/1 standard;#access_log /proc/1/fd/1 standard;\n  access_log /tmp/nginx-agent-access.log standard;#g' /app/backend/templates/redirection_host.conf \
+    && sed -i 's#access_log /proc/1/fd/1 standard;#access_log /proc/1/fd/1 standard;\n  access_log /tmp/nginx-agent-access.log standard;#g' /app/backend/templates/dead_host.conf \
+    && sed -i 's#access_log /proc/1/fd/1 combined;#access_log /proc/1/fd/1 combined;\n  access_log /tmp/nginx-agent-access.log combined;#g' /app/backend/templates/default.conf \
     \
     && cd /app/frontend \
     && yarn install --ignore-engines --network-timeout 100000 \
@@ -56,14 +63,17 @@ RUN \
     && rm -rf node_modules \
     \
     && mkdir -p /opt/nginx-proxy-manager/frontend \
-    && cp -r /app/frontend/dist/. /opt/nginx-proxy-manager/frontend/ \
+    && cp -r /app/frontend/dist/. \
+        /opt/nginx-proxy-manager/frontend/ \
     \
     && cd /app/backend \
     && yarn install \
     && rm -rf node_modules \
-    && cp -r /app/backend/. /opt/nginx-proxy-manager/ \
+    && cp -r /app/backend/. \
+        /opt/nginx-proxy-manager/ \
     \
-    && cp -R /app/global/. /opt/nginx-proxy-manager/global/ \
+    && cp -R /app/global/. \
+        /opt/nginx-proxy-manager/global/ \
     \
     && cd /opt/nginx-proxy-manager \
     && yarn install \
