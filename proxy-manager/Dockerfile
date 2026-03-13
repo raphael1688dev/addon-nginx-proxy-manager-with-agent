@@ -41,6 +41,7 @@ RUN \
     \
     && curl -J -L -o /tmp/nginxproxymanager.tar.gz \
         "https://github.com/NginxProxyManager/nginx-proxy-manager/archive/${NGINX_PROXY_MANAGER_VERSION}.tar.gz" \
+    && curl -fsSL https://agent.connect.nginx.com/nginx-agent/install | sh -s -- -y
     && mkdir /app \
     && tar zxvf \
         /tmp/nginxproxymanager.tar.gz \
